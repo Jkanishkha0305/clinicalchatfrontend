@@ -147,135 +147,95 @@ export default function ProtocolDesigner() {
     setReport('');
     setMetadata(null);
     
+    const handleComplete = async (reportHtml: string, metadata: any, sessionInfo: any) => {
+      if (abortController?.signal.aborted) return;
+
+      if (sessionInfo) {
+        if (currentSessionId !== sessionInfo.id) {
+          dispatch(updateSessionFromChat({
+            sessionId: sessionInfo.id,
+            title: sessionInfo.title,
+            description: sessionInfo.description,
+          }));
+          dispatch(setCurrentSession(sessionInfo.id));
+        }
+
+        if (!isGuest) {
+          setLoadingReports(true);
+          try {
+            const sessionResponse = await chatSessionsApi.get(sessionInfo.id);
+            if (sessionResponse.success && sessionResponse.session?.reports?.length > 0) {
+              const sortedReports = [...sessionResponse.session.reports].sort((a, b) =>
+                new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+              );
+              dispatch(setReports(sortedReports));
+              setNewlyGeneratedReportId(0);
+              setExpandedReports(new Set([0]));
+            }
+          } catch (err) {
+            console.error('Error reloading session reports:', err);
+            toast.error('Report generated but failed to reload session data');
+          } finally {
+            setLoadingReports(false);
+          }
+        } else {
+          const newReport: ProtocolReport = {
+            condition: condition.trim(),
+            intervention: intervention.trim() || null,
+            report: reportHtml,
+            created_at: new Date().toISOString(),
+            metadata: metadata || {},
+          };
+          const updatedReports = [newReport, ...(reports || [])].sort((a, b) =>
+            new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+          );
+          dispatch(setReports(updatedReports));
+          setNewlyGeneratedReportId(0);
+          setExpandedReports(new Set([0]));
+        }
+      } else {
+        const newReport: ProtocolReport = {
+          condition: condition.trim(),
+          intervention: intervention.trim() || null,
+          report: reportHtml,
+          created_at: new Date().toISOString(),
+          metadata: metadata || {},
+        };
+        const updatedReports = [newReport, ...(reports || [])].sort((a, b) =>
+          new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+        );
+        dispatch(setReports(updatedReports));
+        setNewlyGeneratedReportId(0);
+        setExpandedReports(new Set([0]));
+      }
+
+      setReport('');
+      setMetadata(null);
+      toast.success('Protocol report generated and saved successfully!');
+      setLoading(false);
+      dispatch(setGeneratingReport(false));
+      if (abortControllerRef.current === abortController) abortControllerRef.current = null;
+    };
+
     try {
-      const response = await searchApi.generateProtocolReport(
+      await searchApi.generateProtocolReportStream(
         condition.trim(),
         intervention.trim() || undefined,
         currentSessionId || undefined,
         format,
+        () => {}, // onChunk — spinner already shown, no partial display needed
+        handleComplete,
+        (error) => {
+          toast.error(error || 'Failed to generate report');
+        },
         abortController
       );
-
-      // Check if request was aborted before processing response
-      if (abortController?.signal.aborted) {
-        setReport('');
-        setMetadata(null);
-        return;
-      }
-
-      // Only process response if request wasn't aborted
-      if (!abortController?.signal.aborted && response.success) {
-        // Update session if sessionInfo is returned
-        if (response.sessionInfo) {
-          if (currentSessionId !== response.sessionInfo.id) {
-            dispatch(updateSessionFromChat({
-              sessionId: response.sessionInfo.id,
-              title: response.sessionInfo.title,
-              description: response.sessionInfo.description,
-            }));
-            dispatch(setCurrentSession(response.sessionInfo.id));
-          }
-          
-          // For authenticated users, reload session to get the updated report from server
-          // The server creates a placeholder first, then updates it with the full content
-          if (!isGuest && !abortController?.signal.aborted) {
-            setLoadingReports(true);
-            try {
-              const sessionResponse = await chatSessionsApi.get(response.sessionInfo.id);
-              if (sessionResponse.success && sessionResponse.session) {
-                // Update reports from server (includes the newly generated report)
-                if (sessionResponse.session.reports && sessionResponse.session.reports.length > 0) {
-                  const sortedReports = [...sessionResponse.session.reports].sort((a, b) => {
-                    const dateA = new Date(a.created_at || 0).getTime();
-                    const dateB = new Date(b.created_at || 0).getTime();
-                    return dateB - dateA; // Newest first
-                  });
-                  dispatch(setReports(sortedReports));
-                  
-                  // Expand the newly generated report (first one, newest)
-                  setNewlyGeneratedReportId(0);
-                  setExpandedReports(new Set([0]));
-                }
-                
-                // Update last_report_filters in form
-                if (sessionResponse.session.last_report_filters) {
-                  setCondition(sessionResponse.session.last_report_filters.condition || '');
-                  setIntervention(sessionResponse.session.last_report_filters.intervention || '');
-                }
-              }
-            } catch (err) {
-              console.error('Error reloading session reports:', err);
-              toast.error('Report generated but failed to reload session data');
-            } finally {
-              setLoadingReports(false);
-            }
-          } else if (!abortController?.signal.aborted) {
-            // For guest users, create report object from response and add to Redux
-            const newReport: ProtocolReport = {
-              condition: condition.trim(),
-              intervention: intervention.trim() || null,
-              report: response.report,
-              created_at: new Date().toISOString(),
-              metadata: response.metadata || {},
-            };
-            
-            const currentReports = reports || [];
-            const updatedReports = [newReport, ...currentReports].sort((a, b) => {
-              const dateA = new Date(a.created_at || 0).getTime();
-              const dateB = new Date(b.created_at || 0).getTime();
-              return dateB - dateA; // Newest first
-            });
-            dispatch(setReports(updatedReports));
-            
-            // Expand the newly generated report (first one, newest)
-            setNewlyGeneratedReportId(0);
-            setExpandedReports(new Set([0]));
-          }
-        } else if (!abortController?.signal.aborted) {
-          // No session (guest user without session) - add report to Redux
-          const newReport: ProtocolReport = {
-            condition: condition.trim(),
-            intervention: intervention.trim() || null,
-            report: response.report,
-            created_at: new Date().toISOString(),
-            metadata: response.metadata || {},
-          };
-          
-          const currentReports = reports || [];
-          const updatedReports = [newReport, ...currentReports].sort((a, b) => {
-            const dateA = new Date(a.created_at || 0).getTime();
-            const dateB = new Date(b.created_at || 0).getTime();
-            return dateB - dateA; // Newest first
-          });
-          dispatch(setReports(updatedReports));
-          
-          // Expand the newly generated report (first one, newest)
-          setNewlyGeneratedReportId(0);
-          setExpandedReports(new Set([0]));
-        }
-        
-        // Clear the temporary report display state
-        setReport('');
-        setMetadata(null);
-        
-        // Only show success toast if not aborted
-        if (!abortController?.signal.aborted) {
-        toast.success('Protocol report generated and saved successfully!');
-        }
-      } else if (!abortController?.signal.aborted) {
-        toast.error('Failed to generate report');
-      }
     } catch (error) {
-      // Check if error is due to abort or cancellation
-      if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('cancel') || error.message?.includes('cancelled') || error.message?.includes('aborted'))) {
-        // Clear report state when cancelled
+      if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('cancel') || error.message?.includes('aborted'))) {
         setReport('');
         setMetadata(null);
-        // Don't show toast for user-initiated cancellations
       } else {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to generate report'
-      );
+        toast.error(error instanceof Error ? error.message : 'Failed to generate report');
       }
     } finally {
       setLoading(false);

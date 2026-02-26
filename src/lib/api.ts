@@ -278,6 +278,72 @@ export const searchApi = {
     }) as any;
   },
 
+  async generateProtocolReportStream(
+    condition: string,
+    intervention: string | undefined,
+    sessionId: string | undefined,
+    format: 'standard' | 'styled' | 'professional',
+    onChunk: (chunk: string) => void,
+    onComplete: (report: string, metadata: any, sessionInfo: any) => void,
+    onError: (error: string) => void,
+    abortController?: AbortController
+  ): Promise<void> {
+    try {
+      const url = `${BACKEND_SERVER_URL}/api/generate-protocol-report-stream`;
+      const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null;
+      const user = token ? JSON.parse(token) : null;
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (user && user.token) headers['Authorization'] = `Bearer ${user.token}`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ condition, intervention: intervention || '', sessionId: sessionId || '', format }),
+        signal: abortController?.signal,
+      });
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      if (!reader) throw new Error('No response body reader available');
+
+      while (true) {
+        if (abortController?.signal.aborted) { reader.cancel(); return; }
+
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === 'content' && data.chunk) {
+                onChunk(data.chunk);
+              } else if (data.type === 'done') {
+                onComplete(data.report, data.metadata, data.sessionInfo);
+              } else if (data.type === 'error') {
+                onError(data.error || 'Unknown error');
+              }
+            } catch (e) {
+              console.error('Error parsing SSE:', e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return;
+      onError(error instanceof Error ? error.message : 'Streaming failed');
+    }
+  },
+
   async generateChatReport(sessionId: string, format: 'standard' | 'styled' | 'professional' = 'styled', abortController?: AbortController): Promise<{
     success: boolean;
     report: string;
