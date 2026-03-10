@@ -6,6 +6,7 @@ import { chatAllStudies, setAdvancedMode, addMessage, setReports, removeLastUser
 import { ProtocolReport } from '@/lib/types';
 import { updateSessionFromChat, setCurrentSession } from '@/store/slices/sessionsSlice';
 import { chatQuestionsApi, userPreferencesApi, searchApi, chatSessionsApi } from '@/lib/api';
+import { normalizeReportHtml } from '@/lib/reportHtml';
 import { useToastHelpers } from '@/lib/toast';
 import QuestionSettingsModal from './QuestionSettingsModal';
 import ChatReportModal from './ChatReportModal';
@@ -129,6 +130,21 @@ export default function FloatingChat() {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isOpen]);
+
+  useEffect(() => {
+    const handleOpenChat = () => {
+      setIsOpen(true);
+      setTimeout(() => {
+        const input = document.getElementById('sidebarChatInput') as HTMLInputElement | null;
+        input?.focus();
+      }, 180);
+    };
+
+    window.addEventListener('openFloatingChat', handleOpenChat);
+    return () => {
+      window.removeEventListener('openFloatingChat', handleOpenChat);
+    };
+  }, []);
 
   // Update selected model when preferences change
   useEffect(() => {
@@ -496,7 +512,7 @@ export default function FloatingChat() {
                       const isChatReport = report.metadata?.report_type === 'chat_report';
                       const isStudyChatReport = report.metadata?.report_type === 'study_chat_report';
                       // Clean the HTML string - remove any escaped newlines and ensure proper formatting
-                      const cleanHtml = (report.report || '').replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\'/g, "'");
+                      const cleanHtml = normalizeReportHtml(report.report || '');
                       
                       return (
                         <div 
@@ -576,7 +592,7 @@ export default function FloatingChat() {
                         ) : isProtocolReport ? (
                           <div 
                             className="bg-white p-5 rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.1)] mt-2.5"
-                            dangerouslySetInnerHTML={{ __html: msg.content || '' }} 
+                            dangerouslySetInnerHTML={{ __html: normalizeReportHtml(msg.content || '') }} 
                           />
                         ) : (
                           <div className="[&_ul]:ml-5 [&_ul]:mt-2 [&_ul]:mb-2 [&_ol]:ml-5 [&_ol]:mt-2 [&_ol]:mb-2 [&_li]:mb-1.5 [&_li]:leading-relaxed [&_p]:mb-2.5 [&_p]:leading-relaxed [&_strong]:font-semibold" dangerouslySetInnerHTML={{ __html: msg.content || '' }} />
@@ -779,4 +795,3 @@ export default function FloatingChat() {
     </div>
   );
 }
-

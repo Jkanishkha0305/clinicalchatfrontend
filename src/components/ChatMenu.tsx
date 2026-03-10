@@ -86,9 +86,9 @@ export default function ChatMenu({ sessionId, onClose, onRename, isLastItem = fa
 
 
   return (
-    <div className="relative flex items-center" ref={menuRef}>
+    <div className="sidebar-chat-menu relative flex items-center" ref={menuRef}>
       <button
-        className={`flex opacity-100 lg:hidden lg:opacity-0 lg:group-hover:flex lg:group-hover:opacity-100 bg-transparent border-none text-[#546e7a] cursor-pointer p-1.5 rounded transition-all items-center justify-center w-7 h-7 flex-shrink-0 touch-manipulation hover:bg-[rgba(21,101,192,0.1)] active:bg-[rgba(21,101,192,0.15)] hover:text-[#1565c0] disabled:opacity-70 disabled:cursor-not-allowed ${isDeleting ? 'text-[#1565c0] cursor-not-allowed' : ''}`}
+        className={`sidebar-chat-menu-trigger flex opacity-100 lg:hidden lg:opacity-0 lg:group-hover:flex lg:group-hover:opacity-100 bg-transparent border-none text-[#546e7a] cursor-pointer p-1.5 rounded transition-all items-center justify-center w-7 h-7 flex-shrink-0 touch-manipulation hover:bg-[rgba(21,101,192,0.1)] active:bg-[rgba(21,101,192,0.15)] hover:text-[#1565c0] disabled:opacity-70 disabled:cursor-not-allowed ${isDeleting ? 'text-[#1565c0] cursor-not-allowed' : ''}`}
         onClick={handleMenuToggle}
         aria-label="Chat options"
         title="More options"
@@ -109,7 +109,7 @@ export default function ChatMenu({ sessionId, onClose, onRename, isLastItem = fa
       </button>
 
       {isOpen && (
-        <div className={`absolute ${isLastItem ? 'bottom-full mb-0.5' : 'top-full mt-0.5'} right-0 bg-white border border-[rgba(21,101,192,0.15)] rounded-md shadow-[0_4px_12px_rgba(15,23,42,0.12)] z-[1000] min-w-[100px] p-0.5`}>
+        <div className={`sidebar-chat-menu-panel absolute ${isLastItem ? 'bottom-full mb-0.5' : 'top-full mt-0.5'} right-0 bg-white border border-[rgba(21,101,192,0.15)] rounded-md shadow-[0_4px_12px_rgba(15,23,42,0.12)] z-[1000] min-w-[100px] p-0.5`}>
           <button className="flex items-center justify-center w-full px-3 py-1.5 bg-transparent border-none text-[#546e7a] cursor-pointer text-[13px] text-center transition-all font-normal hover:bg-[rgba(21,101,192,0.08)] hover:text-[#1565c0]" onClick={handleRename}>
             Rename
           </button>

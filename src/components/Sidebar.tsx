@@ -193,9 +193,9 @@ export default function Sidebar({ onOpenSearchModal, onClose, onCollapsedChange 
   };
 
   return (
-    <aside className={`w-[320px] lg:w-[280px] ${collapsed ? 'lg:w-[60px]' : ''} bg-white rounded-none lg:rounded-none p-0 fixed lg:fixed top-0 left-0 h-[100dvh] lg:h-screen flex flex-col transition-all duration-300 border-r border-[rgba(21,101,192,0.1)] z-30`} id="appSidebar" style={{ maxHeight: '100dvh', touchAction: 'pan-y' }}>
+    <aside className={`sidebar-shell w-[320px] lg:w-[280px] ${collapsed ? 'lg:w-[60px]' : ''} bg-white rounded-none lg:rounded-none p-0 fixed lg:fixed top-0 left-0 h-[100dvh] lg:h-screen flex flex-col transition-all duration-300 border-r border-[rgba(21,101,192,0.1)] z-30`} id="appSidebar" style={{ maxHeight: '100dvh', touchAction: 'pan-y' }}>
       <div className={`flex flex-1 flex-col h-full min-h-0 overflow-hidden ${collapsed ? 'lg:overflow-visible' : ''}`}>
-        <div className={`flex items-center justify-between px-14 sm:px-6 py-4 border-b border-[rgba(21,101,192,0.1)] relative group ${
+        <div className={`sidebar-brand-bar flex items-center justify-between px-14 sm:px-6 py-4 border-b border-[rgba(21,101,192,0.1)] relative group ${
           collapsed ? 'lg:justify-center lg:px-0 py-[1.1rem]' : ''
         }`}>
           {/* Logo - Always visible, centered when collapsed */}
@@ -264,10 +264,10 @@ export default function Sidebar({ onOpenSearchModal, onClose, onCollapsedChange 
         <div className="p-3 flex flex-col gap-2 flex-shrink-0">
           <button 
             id="newChatButton" 
-            className={`flex items-center gap-3 px-3 py-2.5 border border-transparent rounded-lg cursor-pointer transition-all text-sm text-left w-full touch-manipulation select-none ${
+            className={`sidebar-action-btn sidebar-action-btn--primary flex items-center gap-3 px-3 py-2.5 border border-transparent rounded-lg cursor-pointer transition-all text-sm text-left w-full touch-manipulation select-none ${
               currentSessionId === null
                 ? 'text-white font-semibold shadow-sm'
-                : 'bg-[rgba(0,114,125,0.05)] text-black hover:bg-[rgba(0,114,125,0.08)] active:bg-[rgba(0,114,125,0.12)] hover:border-transparent hover:text-[#00727d] active:text-[#00727d]'
+                : 'bg-[rgba(0,114,125,0.05)] text-slate-100 hover:bg-[rgba(0,114,125,0.08)] active:bg-[rgba(0,114,125,0.12)] hover:border-transparent hover:text-cyan-200 active:text-cyan-200'
             } ${collapsed ? 'lg:justify-center lg:w-9 lg:h-9 lg:p-0 lg:mx-auto' : ''}`}
             style={currentSessionId === null ? { background: 'linear-gradient(145deg, #00727d 0%, #44aeb8 100%)' } : undefined}
             title="New chat"
@@ -306,7 +306,7 @@ export default function Sidebar({ onOpenSearchModal, onClose, onCollapsedChange 
 
           <button 
             id="searchChatsBtn" 
-            className={`flex items-center gap-3 px-3 py-2.5 bg-transparent border border-transparent rounded-lg text-[#37474f] cursor-pointer transition-all text-sm text-left w-full touch-manipulation select-none ${
+            className={`sidebar-action-btn flex items-center gap-3 px-3 py-2.5 bg-transparent border border-transparent rounded-lg text-[#37474f] cursor-pointer transition-all text-sm text-left w-full touch-manipulation select-none ${
               collapsed ? 'lg:justify-center lg:w-9 lg:h-9 lg:p-0 lg:mx-auto' : ''
             } hover:bg-[rgba(0,114,125,0.08)] active:bg-[rgba(0,114,125,0.12)] hover:border-transparent hover:text-[#00727d] active:text-[#00727d]`}
             title="Search chats"
@@ -326,7 +326,7 @@ export default function Sidebar({ onOpenSearchModal, onClose, onCollapsedChange 
         <div className="flex-1 overflow-hidden flex flex-col p-3 min-h-0">
           <div className="flex-1 flex flex-col overflow-hidden min-h-0">
             <button 
-              className={`flex items-center justify-between px-3 py-2 bg-transparent border-none text-[#546e7a] cursor-pointer w-full text-left rounded-md transition-all touch-manipulation select-none hover:bg-[rgba(0,114,125,0.08)] active:bg-[rgba(0,114,125,0.12)] hover:text-[#00727d] active:text-[#00727d] ${collapsed ? 'lg:hidden' : ''}`} 
+              className={`sidebar-section-toggle flex items-center justify-between px-3 py-2 bg-transparent border-none text-[#546e7a] cursor-pointer w-full text-left rounded-md transition-all touch-manipulation select-none hover:bg-[rgba(0,114,125,0.08)] active:bg-[rgba(0,114,125,0.12)] hover:text-[#00727d] active:text-[#00727d] ${collapsed ? 'lg:hidden' : ''}`} 
               id="chatHistoryToggle"
               onClick={() => setChatHistoryCollapsed(!chatHistoryCollapsed)}
             >
@@ -358,7 +358,7 @@ export default function Sidebar({ onOpenSearchModal, onClose, onCollapsedChange 
                   return (
                   <div 
                     key={session.id} 
-                    className={`relative flex items-center m-0.5 gap-1 p-1 rounded-lg transition-all group touch-manipulation ${
+                    className={`sidebar-session-row relative flex items-center m-0.5 gap-1 p-1 rounded-lg transition-all group touch-manipulation ${
                       isActive 
                         ? '' 
                         : 'hover:bg-[rgba(0,114,125,0.08)] active:bg-[rgba(0,114,125,0.12)]'
@@ -378,7 +378,7 @@ export default function Sidebar({ onOpenSearchModal, onClose, onCollapsedChange 
                           onChange={(e) => setRenameValue(e.target.value)}
                           onKeyDown={handleRenameKeyDown}
                           onBlur={handleRenameBlur}
-                          className="flex-1 px-2 py-1.5 border border-[rgba(0,114,125,0.3)] rounded outline-none transition-colors focus:border-[#00727d] bg-white min-w-0"
+                          className="sidebar-rename-input flex-1 px-2 py-1.5 border border-[rgba(0,114,125,0.3)] rounded outline-none transition-colors focus:border-[#00727d] bg-white min-w-0"
                           placeholder="Enter chat name"
                           maxLength={100}
                           style={{ fontSize: '16px' }}
@@ -416,10 +416,10 @@ export default function Sidebar({ onOpenSearchModal, onClose, onCollapsedChange 
                     ) : (
                       <>
                         <div 
-                          className={`flex-1 flex items-center px-4 py-3 rounded-lg cursor-pointer transition-all text-sm leading-normal whitespace-nowrap overflow-hidden text-ellipsis border border-transparent min-h-[44px] box-border text-left touch-manipulation select-none ${
+                          className={`sidebar-session-button flex-1 flex items-center px-4 py-3 rounded-lg cursor-pointer transition-all text-sm leading-normal whitespace-nowrap overflow-hidden text-ellipsis border border-transparent min-h-[44px] box-border text-left touch-manipulation select-none ${
                             isActive
                               ? 'text-white font-semibold shadow-sm' 
-                              : 'bg-transparent text-black group-hover:text-[#00727d] active:text-[#00727d]'
+                              : 'bg-transparent text-slate-100 group-hover:text-cyan-200 active:text-cyan-200'
                           } ${collapsed ? 'lg:hidden' : ''}`}
                           style={isActive ? { background: 'linear-gradient(145deg, #00727d 0%, #44aeb8 100%)' } : undefined}
                           onClick={async () => {
@@ -526,12 +526,12 @@ export default function Sidebar({ onOpenSearchModal, onClose, onCollapsedChange 
           </div>
         </div>
 
-        <div className="p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] border-t border-[rgba(21,101,192,0.1)] relative flex flex-col gap-3 mt-auto flex-shrink-0 z-10">
+        <div className="sidebar-footer p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] border-t border-[rgba(21,101,192,0.1)] relative flex flex-col gap-3 mt-auto flex-shrink-0 z-10">
           {user && (
             <div className="relative" ref={profileMenuRef}>
           <button 
             id="profileCard" 
-            className={`flex items-center gap-3 w-full px-3 py-2 bg-[rgba(0,114,125,0.05)] border border-[rgba(0,114,125,0.1)] rounded-lg text-[#37474f] cursor-pointer transition-all text-left relative z-10 touch-manipulation select-none ${
+            className={`sidebar-profile-card flex items-center gap-3 w-full px-3 py-2 bg-[rgba(0,114,125,0.05)] border border-[rgba(0,114,125,0.1)] rounded-lg text-[#37474f] cursor-pointer transition-all text-left relative z-10 touch-manipulation select-none ${
               collapsed ? 'lg:justify-center lg:w-11 lg:h-11 lg:p-2 lg:mx-auto' : ''
             } hover:bg-[rgba(0,114,125,0.1)] active:bg-[rgba(0,114,125,0.12)] hover:border-[rgba(0,114,125,0.2)] active:border-[rgba(0,114,125,0.25)] ${profileMenuOpen ? 'bg-[rgba(0,114,125,0.1)] border-[rgba(0,114,125,0.2)]' : ''}`}
             aria-haspopup="true" 
@@ -554,7 +554,7 @@ export default function Sidebar({ onOpenSearchModal, onClose, onCollapsedChange 
 
           <div 
             id="profileMenu" 
-            className={`absolute bottom-full left-0 right-0 mb-2 bg-white text-[#37474f] border border-[rgba(21,101,192,0.15)] rounded-lg p-2 shadow-[0_8px_24px_rgba(21,101,192,0.15)] z-[1400] min-w-[200px] transition-all duration-200 ${
+            className={`sidebar-profile-menu absolute bottom-full left-0 right-0 mb-2 bg-white text-[#37474f] border border-[rgba(21,101,192,0.15)] rounded-lg p-2 shadow-[0_8px_24px_rgba(21,101,192,0.15)] z-[1400] min-w-[200px] transition-all duration-200 ${
               profileMenuOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible translate-y-2 pointer-events-none'
             }`}
             role="menu" 
@@ -610,4 +610,3 @@ export default function Sidebar({ onOpenSearchModal, onClose, onCollapsedChange 
     </aside>
   );
 }
-

@@ -2,7 +2,7 @@
 export const PROJECT_MODE = process.env.NEXT_PUBLIC_PROJECT_MODE || 'development';
 
 // Backend URLs
-export const BACKEND_DEV_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5033';
+export const BACKEND_DEV_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081';
 export const BACKEND_STAGE_URL = process.env.NEXT_PUBLIC_API_BASE_URL_STAGE || '';
 export const BACKEND_PROD_URL = process.env.NEXT_PUBLIC_API_BASE_URL_PROD || '';
 
@@ -26,4 +26,3 @@ switch (PROJECT_MODE) {
 
 // Token storage key
 export const TOKEN_STORAGE_KEY = 'appUser';
-

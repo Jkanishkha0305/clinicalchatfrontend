@@ -122,7 +122,7 @@ export default function SignupPage() {
 
         {/* Form Section */}
         <div className="px-8 pb-6">
-          <form method="POST" action="/api/auth/signup" className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+          <form method="POST" action="/api/auth/sign-up" className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
             <div className="flex flex-col gap-2">
               <label htmlFor="signup-username" className="text-sm font-semibold text-[#1e293b]">
                 Username
@@ -254,4 +254,3 @@ export default function SignupPage() {
     </div>
   );
 }
-

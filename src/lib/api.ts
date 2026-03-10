@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { BACKEND_SERVER_URL, PROJECT_MODE, TOKEN_STORAGE_KEY } from './constants/api.constant';
+import { getProviderFromModel, normalizeProvider, type AIProvider } from './constants/aiModels';
 import { useCrypto } from './utils/crypto';
 import deepParseJson from './utils/deepParseJson';
 import { SearchFilters, SearchResults, Study, ChatMessage, ChatSession, User } from './types';
@@ -10,6 +11,38 @@ class ApiError extends Error {
     this.name = 'ApiError';
   }
 }
+
+type UserPreferences = {
+  default_chat_questions: string[];
+  ai_provider: AIProvider;
+  ai_model: string;
+};
+
+const applyStudyChatModelSelection = (body: Record<string, unknown>, model?: string) => {
+  if (!model) {
+    return;
+  }
+
+  body.provider = getProviderFromModel(model);
+  body.model = model;
+};
+
+const applyDatasetChatModelSelection = (body: Record<string, unknown>, model?: string) => {
+  if (!model) {
+    return;
+  }
+
+  const provider = getProviderFromModel(model);
+  body.provider = provider;
+  // The current FastAPI backend expects the provider key in `model` for /chat-all.
+  body.model = provider;
+};
+
+const normalizeUserPreferences = (preferences: Partial<UserPreferences> | undefined): UserPreferences => ({
+  default_chat_questions: preferences?.default_chat_questions || [],
+  ai_provider: normalizeProvider(preferences?.ai_provider),
+  ai_model: preferences?.ai_model || 'gpt-4o-mini',
+});
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -352,10 +385,6 @@ export const searchApi = {
 export const chatApi = {
   async chatSingleStudy(nctId: string, question: string, chatSessionId?: string, model?: string): Promise<{ success: boolean; answer: string }> {
     // Response interceptor returns data directly, not AxiosResponse
-    // Extract provider from model name for validation, but also send model for backend processing
-    const { getProviderFromModel } = require('./constants/aiModels');
-    const provider = model ? getProviderFromModel(model) : undefined;
-    
     const body: any = {
       nctId,
       question,
@@ -363,12 +392,7 @@ export const chatApi = {
     if (chatSessionId) {
       body.chatSessionId = chatSessionId;
     }
-    if (provider) {
-      body.provider = provider; // Send provider for validation (openai, gemini, grok)
-    }
-    if (model) {
-      body.model = model; // Also send model name for backend to use specific model
-    }
+    applyStudyChatModelSelection(body, model);
     
     return await api.post<{ success: boolean; answer: string }>('/api/chat', body) as any;
   },
@@ -397,20 +421,11 @@ export const chatApi = {
       }
 
       // Encrypt in production
-      // Extract provider from model name for validation, but also send model for backend processing
-      const { getProviderFromModel } = require('./constants/aiModels');
-      const provider = model ? getProviderFromModel(model) : undefined;
-      
       let body: any = { nctId, question };
       if (chatSessionId) {
         body.chatSessionId = chatSessionId;
       }
-      if (provider) {
-        body.provider = provider; // Send provider for validation (openai, gemini, grok)
-      }
-      if (model) {
-        body.model = model; // Also send model name for backend to use specific model
-      }
+      applyStudyChatModelSelection(body, model);
       if (PROJECT_MODE === 'production') {
         const { encodeData } = useCrypto();
         const encryptedBody = await encodeData(body);
@@ -518,10 +533,6 @@ export const chatApi = {
     };
   }> {
     // Response interceptor returns data directly, not AxiosResponse
-    // Extract provider from model name for validation, but also send model for backend processing
-    const { getProviderFromModel } = require('./constants/aiModels');
-    const provider = model ? getProviderFromModel(model) : undefined;
-    
     const body: any = {
       filters,
       question,
@@ -530,12 +541,7 @@ export const chatApi = {
     if (sessionId) {
       body.sessionId = sessionId;
     }
-    if (provider) {
-      body.provider = provider; // Send provider for validation (openai, gemini, grok)
-    }
-    if (model) {
-      body.model = model; // Also send model name for backend to use specific model
-    }
+    applyDatasetChatModelSelection(body, model);
     
     const response = await api.post<any>('/api/chat-all', body) as any;
     // Server returns: { success, message, answer, info?, sessionInfo?: { sessionId, title, description } }
@@ -576,17 +582,8 @@ export const chatApi = {
       }
 
       // Encrypt in production
-      // Extract provider from model name for validation, but also send model for backend processing
-      const { getProviderFromModel } = require('./constants/aiModels');
-      const provider = model ? getProviderFromModel(model) : undefined;
-      
       let body: any = { filters, question, advancedMode, sessionId };
-      if (provider) {
-        body.provider = provider; // Send provider for validation (openai, gemini, grok)
-      }
-      if (model) {
-        body.model = model; // Also send model name for backend to use specific model
-      }
+      applyDatasetChatModelSelection(body, model);
       if (PROJECT_MODE === 'production') {
         const { encodeData } = useCrypto();
         const encryptedBody = await encodeData(body);
@@ -698,12 +695,20 @@ export const chatApi = {
 
 // User Preferences API
 export const userPreferencesApi = {
-  async get(): Promise<{ success: boolean; preferences: { default_chat_questions: string[]; ai_provider: 'openai' | 'gemini' | 'grok'; ai_model: string } }> {
-    return await api.get<{ success: boolean; preferences: { default_chat_questions: string[]; ai_provider: 'openai' | 'gemini' | 'grok'; ai_model: string } }>('/api/user-preferences') as any;
+  async get(): Promise<{ success: boolean; preferences: UserPreferences }> {
+    const response = await api.get<{ success: boolean; preferences: UserPreferences }>('/api/user-preferences') as any;
+    return {
+      ...response,
+      preferences: normalizeUserPreferences(response.preferences),
+    };
   },
 
-  async update(updates: { default_chat_questions?: string[]; ai_provider?: 'openai' | 'gemini' | 'grok'; ai_model?: string }): Promise<{ success: boolean; preferences: { default_chat_questions: string[]; ai_provider: 'openai' | 'gemini' | 'grok'; ai_model: string } }> {
-    return await api.patch<{ success: boolean; preferences: { default_chat_questions: string[]; ai_provider: 'openai' | 'gemini' | 'grok'; ai_model: string } }>('/api/user-preferences', updates) as any;
+  async update(updates: { default_chat_questions?: string[]; ai_provider?: AIProvider; ai_model?: string }): Promise<{ success: boolean; preferences: UserPreferences }> {
+    const response = await api.patch<{ success: boolean; preferences: UserPreferences }>('/api/user-preferences', updates) as any;
+    return {
+      ...response,
+      preferences: normalizeUserPreferences(response.preferences),
+    };
   },
 };
 

@@ -1,14 +1,10 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { userPreferencesApi, userSettingsApi } from '@/lib/api';
-import { AI_MODELS } from '@/lib/constants/aiModels';
-
-type AIModel = 
-  | 'gpt-5.1' | 'gpt-5' | 'gpt-5-mini' | 'gpt-5-nano' | 'gpt-4.1-mini' | 'gpt-4.1-nano' | 'gpt-4o-mini'
-  | 'gemini-3-pro-preview' | 'gemini-2.5-pro' | 'gemini-2.5-flash' | 'gemini-2.5-flash-lite' | 'gemini-2.0-flash' | 'gemini-2.0-flash-lite';
+import { AI_MODELS, type AIModel, type AIProvider, normalizeProvider } from '@/lib/constants/aiModels';
 
 interface PreferencesState {
   default_chat_questions: string[];
-  ai_provider: 'openai' | 'gemini' | 'grok';
+  ai_provider: AIProvider;
   ai_model: AIModel;
   visible_models: string[];
   loading: boolean;
@@ -33,6 +29,31 @@ const defaultVisibleModels: string[] = [
   "gpt-5-mini"
 ];
 
+const KNOWN_MODELS = new Set(AI_MODELS.map((model) => model.value));
+
+const normalizeVisibleModels = (visibleModels?: string[] | null): string[] => {
+  if (!visibleModels || visibleModels.length === 0) {
+    return defaultVisibleModels;
+  }
+
+  const knownModels = visibleModels.filter((model) => KNOWN_MODELS.has(model as AIModel));
+  const containsUnknownModels = knownModels.length !== visibleModels.length;
+
+  if (containsUnknownModels && knownModels.length <= 1) {
+    return defaultVisibleModels;
+  }
+
+  return knownModels.length > 0 ? knownModels : defaultVisibleModels;
+};
+
+const normalizeSelectedModel = (model?: string | null): AIModel => {
+  if (model && KNOWN_MODELS.has(model as AIModel)) {
+    return model as AIModel;
+  }
+
+  return 'gpt-4o-mini';
+};
+
 const initialState: PreferencesState = {
   default_chat_questions: defaultQuestions,
   ai_provider: 'openai',
@@ -51,9 +72,9 @@ export const fetchPreferences = createAsyncThunk('preferences/fetch', async (_, 
     
     return {
       default_chat_questions: preferencesResponse.preferences.default_chat_questions || defaultQuestions,
-      ai_provider: preferencesResponse.preferences.ai_provider || 'openai',
-      ai_model: preferencesResponse.preferences.ai_model || 'gpt-4o-mini',
-      visible_models: settingsResponse?.settings?.visible_models || defaultVisibleModels,
+      ai_provider: normalizeProvider(preferencesResponse.preferences.ai_provider),
+      ai_model: normalizeSelectedModel(preferencesResponse.preferences.ai_model),
+      visible_models: normalizeVisibleModels(settingsResponse?.settings?.visible_models),
     };
   } catch (error) {
     return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch preferences');
@@ -64,7 +85,7 @@ export const fetchSettings = createAsyncThunk('preferences/fetchSettings', async
   try {
     const response = await userSettingsApi.get();
     return {
-      visible_models: response.settings.visible_models || defaultVisibleModels,
+      visible_models: normalizeVisibleModels(response.settings.visible_models),
     };
   } catch (error) {
     return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch settings');
@@ -75,20 +96,20 @@ export const updateSettings = createAsyncThunk('preferences/updateSettings', asy
   try {
     const response = await userSettingsApi.update(updates);
     return {
-      visible_models: response.settings.visible_models || defaultVisibleModels,
+      visible_models: normalizeVisibleModels(response.settings.visible_models),
     };
   } catch (error) {
     return rejectWithValue(error instanceof Error ? error.message : 'Failed to update settings');
   }
 });
 
-export const updatePreferences = createAsyncThunk('preferences/update', async (updates: { default_chat_questions?: string[]; ai_provider?: 'openai' | 'gemini' | 'grok'; ai_model?: AIModel }, { rejectWithValue }) => {
+export const updatePreferences = createAsyncThunk('preferences/update', async (updates: { default_chat_questions?: string[]; ai_provider?: AIProvider; ai_model?: AIModel }, { rejectWithValue }) => {
   try {
     const response = await userPreferencesApi.update(updates);
     return {
       default_chat_questions: response.preferences.default_chat_questions,
-      ai_provider: response.preferences.ai_provider || 'openai',
-      ai_model: response.preferences.ai_model || 'gpt-4o-mini',
+      ai_provider: normalizeProvider(response.preferences.ai_provider),
+      ai_model: normalizeSelectedModel(response.preferences.ai_model),
     };
   } catch (error) {
     return rejectWithValue(error instanceof Error ? error.message : 'Failed to update preferences');
@@ -102,7 +123,7 @@ const preferencesSlice = createSlice({
     setDefaultQuestions: (state, action: PayloadAction<string[]>) => {
       state.default_chat_questions = action.payload;
     },
-    setAiProvider: (state, action: PayloadAction<'openai' | 'gemini' | 'grok'>) => {
+    setAiProvider: (state, action: PayloadAction<AIProvider>) => {
       state.ai_provider = action.payload;
     },
     setAiModel: (state, action: PayloadAction<AIModel>) => {
@@ -122,8 +143,8 @@ const preferencesSlice = createSlice({
         state.loading = false;
         state.default_chat_questions = action.payload.default_chat_questions;
         state.ai_provider = action.payload.ai_provider;
-        state.ai_model = (action.payload.ai_model || 'gpt-4o-mini') as AIModel;
-        state.visible_models = action.payload.visible_models || defaultVisibleModels;
+        state.ai_model = normalizeSelectedModel(action.payload.ai_model);
+        state.visible_models = normalizeVisibleModels(action.payload.visible_models);
       })
       .addCase(fetchPreferences.rejected, (state, action) => {
         state.loading = false;
@@ -137,7 +158,7 @@ const preferencesSlice = createSlice({
         state.loading = false;
         state.default_chat_questions = action.payload.default_chat_questions;
         state.ai_provider = action.payload.ai_provider;
-        state.ai_model = (action.payload.ai_model || 'gpt-4o-mini') as AIModel;
+        state.ai_model = normalizeSelectedModel(action.payload.ai_model);
       })
       .addCase(updatePreferences.rejected, (state, action) => {
         state.loading = false;
@@ -149,7 +170,7 @@ const preferencesSlice = createSlice({
       })
       .addCase(fetchSettings.fulfilled, (state, action) => {
         state.loading = false;
-        state.visible_models = action.payload.visible_models || defaultVisibleModels;
+        state.visible_models = normalizeVisibleModels(action.payload.visible_models);
       })
       .addCase(fetchSettings.rejected, (state, action) => {
         state.loading = false;
@@ -161,7 +182,7 @@ const preferencesSlice = createSlice({
       })
       .addCase(updateSettings.fulfilled, (state, action) => {
         state.loading = false;
-        state.visible_models = action.payload.visible_models || defaultVisibleModels;
+        state.visible_models = normalizeVisibleModels(action.payload.visible_models);
       })
       .addCase(updateSettings.rejected, (state, action) => {
         state.loading = false;
@@ -173,4 +194,3 @@ const preferencesSlice = createSlice({
 export const { setDefaultQuestions, setAiProvider, setAiModel, clearError } = preferencesSlice.actions;
 export type { AIModel };
 export default preferencesSlice.reducer;
-

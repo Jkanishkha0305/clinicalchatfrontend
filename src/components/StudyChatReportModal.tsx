@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { searchApi, chatSessionsApi } from '@/lib/api';
+import { normalizeReportHtml } from '@/lib/reportHtml';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { useToastHelpers } from '@/lib/toast';
 import { setReports } from '@/store/slices/chatSlice';
@@ -119,6 +120,7 @@ export default function StudyChatReportModal({ isOpen, onClose, studyId, chatSes
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
     if (printWindow && report) {
+      const normalizedReport = normalizeReportHtml(report);
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -132,7 +134,7 @@ export default function StudyChatReportModal({ isOpen, onClose, studyId, chatSes
             </style>
           </head>
           <body>
-            ${report}
+            ${normalizedReport}
           </body>
         </html>
       `);
@@ -178,7 +180,7 @@ export default function StudyChatReportModal({ isOpen, onClose, studyId, chatSes
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ margin: 0, color: '#667eea' }}>🔬 Study Chat Research Report</h2>
+          <h2 style={{ margin: 0, color: '#0f172a' }}>Study Conversation Research Report</h2>
           <button
             onClick={onClose}
             style={{
@@ -328,7 +330,7 @@ export default function StudyChatReportModal({ isOpen, onClose, studyId, chatSes
                 marginTop: '20px',
               }}
             >
-              {loading ? '⏳ Generating Report...' : '✨ Generate Study Chat Report'}
+              {loading ? 'Generating report...' : 'Generate study report'}
             </button>
             )}
 
@@ -342,36 +344,15 @@ export default function StudyChatReportModal({ isOpen, onClose, studyId, chatSes
                 background: '#f8f9fa',
                 borderRadius: '8px',
               }}>
-                <div style={{ fontSize: '48px', marginBottom: '15px' }}>⏳</div>
-                <h3 style={{ color: '#667eea' }}>Generating Report...</h3>
+                <h3 style={{ color: '#0f172a' }}>Generating report...</h3>
                 <p style={{ color: '#666' }}>AI is analyzing your conversation to generate the report</p>
               </div>
             )}
           </div>
         ) : (
           <div>
-            {metadata && (
-              <div
-                style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
-                  padding: '15px',
-                  borderRadius: '8px',
-                  marginBottom: '20px',
-                }}
-              >
-                <p style={{ margin: '5px 0' }}>
-                  <strong>Study:</strong> {metadata.study_id}
-                </p>
-                <p style={{ margin: '5px 0' }}>
-                  <strong>Title:</strong> {metadata.study_title}
-                </p>
-                <p style={{ margin: '5px 0' }}>
-                  <strong>Based on:</strong> {metadata.messages_count} messages in conversation
-                </p>
-              </div>
-            )}
             <div
+              className="report-content workspace-rich-text"
               style={{
                 background: 'white',
                 padding: '20px',
@@ -379,7 +360,7 @@ export default function StudyChatReportModal({ isOpen, onClose, studyId, chatSes
                 boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
                 marginBottom: '20px',
               }}
-              dangerouslySetInnerHTML={{ __html: report }}
+              dangerouslySetInnerHTML={{ __html: normalizeReportHtml(report) }}
             />
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
@@ -394,7 +375,7 @@ export default function StudyChatReportModal({ isOpen, onClose, studyId, chatSes
                   fontSize: '14px',
                 }}
               >
-                🖨️ Print
+                Print
               </button>
               <button
                 onClick={() => {
@@ -434,4 +415,3 @@ export default function StudyChatReportModal({ isOpen, onClose, studyId, chatSes
     </div>
   );
 }
-

@@ -1,17 +1,38 @@
 'use client';
 
+import type { ComponentType, FormEvent, SVGProps } from 'react';
 import { useState } from 'react';
 import axios from 'axios';
+import { BACKEND_SERVER_URL } from '@/lib/constants/api.constant';
+import {
+  ActivityIcon,
+  AlertTriangleIcon,
+  ArrowLeftIcon,
+  BotIcon,
+  ChartIcon,
+  DownloadIcon,
+  FileTextIcon,
+  FlaskIcon,
+  LayersIcon,
+  PrinterIcon,
+  SearchIcon,
+  SparklesIcon,
+} from '@/components/ui/icons';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5033';
+const API_BASE_URL = BACKEND_SERVER_URL;
 const AGENTIC_API_BASE_URL = process.env.NEXT_PUBLIC_AGENTIC_API_BASE_URL || API_BASE_URL;
+
+type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
+type ToneName = 'amber' | 'sky' | 'emerald' | 'violet' | 'indigo' | 'teal';
+type ViewMode = 'rendered' | 'plain';
 
 interface AgentFeature {
   id: string;
   title: string;
   description: string;
-  icon: string;
+  icon: IconComponent;
   endpoint: string;
+  tone: ToneName;
   inputs: Array<{
     name: string;
     label: string;
@@ -22,81 +43,141 @@ interface AgentFeature {
   }>;
 }
 
+const FEATURE_TONES: Record<
+  ToneName,
+  {
+    iconSurface: string;
+    iconColor: string;
+    badge: string;
+    emphasis: string;
+    emphasisTitle: string;
+  }
+> = {
+  amber: {
+    iconSurface: 'border-amber-200 bg-amber-50',
+    iconColor: 'text-amber-700',
+    badge: 'bg-amber-100 text-amber-700',
+    emphasis: 'border-amber-200 bg-amber-50',
+    emphasisTitle: 'text-amber-900',
+  },
+  sky: {
+    iconSurface: 'border-sky-200 bg-sky-50',
+    iconColor: 'text-sky-700',
+    badge: 'bg-sky-100 text-sky-700',
+    emphasis: 'border-sky-200 bg-sky-50',
+    emphasisTitle: 'text-sky-900',
+  },
+  emerald: {
+    iconSurface: 'border-emerald-200 bg-emerald-50',
+    iconColor: 'text-emerald-700',
+    badge: 'bg-emerald-100 text-emerald-700',
+    emphasis: 'border-emerald-200 bg-emerald-50',
+    emphasisTitle: 'text-emerald-900',
+  },
+  violet: {
+    iconSurface: 'border-violet-200 bg-violet-50',
+    iconColor: 'text-violet-700',
+    badge: 'bg-violet-100 text-violet-700',
+    emphasis: 'border-violet-200 bg-violet-50',
+    emphasisTitle: 'text-violet-900',
+  },
+  indigo: {
+    iconSurface: 'border-indigo-200 bg-indigo-50',
+    iconColor: 'text-indigo-700',
+    badge: 'bg-indigo-100 text-indigo-700',
+    emphasis: 'border-indigo-200 bg-indigo-50',
+    emphasisTitle: 'text-indigo-900',
+  },
+  teal: {
+    iconSurface: 'border-teal-200 bg-teal-50',
+    iconColor: 'text-teal-700',
+    badge: 'bg-teal-100 text-teal-700',
+    emphasis: 'border-teal-200 bg-teal-50',
+    emphasisTitle: 'text-teal-900',
+  },
+};
+
 const AGENT_FEATURES: AgentFeature[] = [
   {
     id: 'amendment-risk',
-    title: '⚠️ Amendment Risk Predictor',
-    description: 'Predict likelihood of protocol amendments based on design complexity using 4 specialized agents',
-    icon: '⚠️',
+    title: 'Amendment Risk',
+    description: 'Predict likely amendment pressure across design complexity, feasibility, and operational burden.',
+    icon: AlertTriangleIcon,
+    tone: 'amber',
     endpoint: '/api/amendment-risk',
-    inputs: [
-      { name: 'nctId', label: 'NCT ID', type: 'text', placeholder: 'e.g., NCT04831775', required: true }
-    ]
+    inputs: [{ name: 'nctId', label: 'NCT ID', type: 'text', placeholder: 'e.g. NCT04831775', required: true }],
   },
   {
     id: 'design-patterns',
-    title: '🔍 Design Pattern Discovery',
-    description: 'Discover design patterns across similar trials analyzed by 3 specialized agents',
-    icon: '🔍',
+    title: 'Design Patterns',
+    description: 'Discover recurring trial design structures across a condition, phase, or intervention type.',
+    icon: LayersIcon,
+    tone: 'violet',
     endpoint: '/api/design-patterns',
     inputs: [
-      { name: 'condition', label: 'Condition', type: 'text', placeholder: 'e.g., Diabetes', required: true },
-      { name: 'phase', label: 'Phase (Optional)', type: 'text', placeholder: 'e.g., Phase 3' },
-      { name: 'interventionType', label: 'Intervention Type (Optional)', type: 'text', placeholder: 'e.g., Drug' }
-    ]
+      { name: 'condition', label: 'Condition', type: 'text', placeholder: 'e.g. Diabetes', required: true },
+      { name: 'phase', label: 'Phase', type: 'text', placeholder: 'Optional. e.g. Phase 3' },
+      { name: 'interventionType', label: 'Intervention type', type: 'text', placeholder: 'Optional. e.g. Drug' },
+    ],
   },
   {
     id: 'soa-composer',
-    title: '📋 Schedule of Assessments Composer',
-    description: 'Generate comprehensive Schedule of Assessments with 4 specialized agents',
-    icon: '📋',
+    title: 'Schedule of Assessments',
+    description: 'Generate a more complete SoA draft using multi-agent synthesis across comparable studies.',
+    icon: FileTextIcon,
+    tone: 'emerald',
     endpoint: '/api/soa-composer',
     inputs: [
-      { name: 'condition', label: 'Condition', type: 'text', placeholder: 'e.g., Diabetes', required: true },
-      { name: 'phase', label: 'Phase (Optional)', type: 'text', placeholder: 'e.g., Phase 3' },
-      { name: 'interventionType', label: 'Intervention Type (Optional)', type: 'text', placeholder: 'e.g., Drug' }
-    ]
+      { name: 'condition', label: 'Condition', type: 'text', placeholder: 'e.g. Diabetes', required: true },
+      { name: 'phase', label: 'Phase', type: 'text', placeholder: 'Optional. e.g. Phase 3' },
+      {
+        name: 'interventionType',
+        label: 'Intervention type',
+        type: 'text',
+        placeholder: 'Optional. e.g. Drug or device',
+      },
+    ],
   },
   {
     id: 'agentic-search',
-    title: '🚀 Agentic Search Enhancement',
-    description: 'Enhanced search using multiple AI agents for terminology expansion',
-    icon: '🚀',
+    title: 'Agentic Search',
+    description: 'Expand terminology and search strategy when a plain query misses important domain language.',
+    icon: SparklesIcon,
+    tone: 'sky',
     endpoint: '/api/agentic-search',
     inputs: [
-      { name: 'query', label: 'Search Query', type: 'text', placeholder: 'e.g., Heart failure treatment', required: true }
-    ]
+      { name: 'query', label: 'Search query', type: 'text', placeholder: 'e.g. Heart failure treatment', required: true },
+    ],
   },
   {
     id: 'protocol-analysis',
-    title: '🤖 Multi-Agent Protocol Analysis',
-    description: 'Comprehensive protocol analysis with 5 specialized agents',
-    icon: '🤖',
+    title: 'Protocol Analysis',
+    description: 'Run deeper protocol analysis with specialized agents focused on design quality and feasibility.',
+    icon: BotIcon,
+    tone: 'indigo',
     endpoint: '/api/multi-agent-analysis',
-    inputs: [
-      { name: 'nctId', label: 'NCT ID', type: 'text', placeholder: 'e.g., NCT04831775', required: true }
-    ]
+    inputs: [{ name: 'nctId', label: 'NCT ID', type: 'text', placeholder: 'e.g. NCT04831775', required: true }],
   },
   {
     id: 'trial-comparison',
-    title: '🔬 Multi-Agent Trial Comparison',
-    description: 'Compare multiple trials across 4 key dimensions',
-    icon: '🔬',
+    title: 'Trial Comparison',
+    description: 'Compare multiple studies across design, operations, endpoints, and strategic positioning.',
+    icon: ChartIcon,
+    tone: 'teal',
     endpoint: '/api/compare-trials',
     inputs: [
-      { name: 'nctIds', label: 'NCT IDs (comma-separated)', type: 'text', placeholder: 'e.g., NCT04831775, NCT04838392', required: true }
-    ]
-  }
+      {
+        name: 'nctIds',
+        label: 'NCT IDs',
+        type: 'text',
+        placeholder: 'Comma-separated. e.g. NCT04831775, NCT04838392',
+        required: true,
+      },
+    ],
+  },
 ];
 
-const AGENTIC_FEATURE_IDS = new Set([
-  'amendment-risk',
-  'design-patterns',
-  'soa-composer',
-  'agentic-search',
-  'protocol-analysis',
-  'trial-comparison',
-]);
+const AGENTIC_FEATURE_IDS = new Set(AGENT_FEATURES.map((feature) => feature.id));
 
 export default function AgentsPanel() {
   const [selectedFeature, setSelectedFeature] = useState<AgentFeature | null>(null);
@@ -104,7 +185,7 @@ export default function AgentsPanel() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'rendered' | 'plain'>('rendered');
+  const [viewMode, setViewMode] = useState<ViewMode>('rendered');
 
   const handleFeatureClick = (feature: AgentFeature) => {
     setSelectedFeature(feature);
@@ -115,51 +196,42 @@ export default function AgentsPanel() {
   };
 
   const stripHtml = (html: string): string => {
-    if (!html) return '';
+    if (!html) {
+      return '';
+    }
 
-    // Ensure we're in browser environment
     if (typeof window === 'undefined') {
-      // Server-side fallback
       return html.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, ' ').trim();
     }
 
     try {
-      // Create a temporary element
       const tmp = document.createElement('div');
       tmp.innerHTML = html;
 
-      // Handle line breaks and paragraphs
       const paragraphs = tmp.querySelectorAll('p, div, br, h1, h2, h3, h4, h5, h6, li');
-      paragraphs.forEach(el => {
-        if (el.tagName === 'BR') {
-          el.replaceWith('\n');
+      paragraphs.forEach((element) => {
+        if (element.tagName === 'BR') {
+          element.replaceWith('\n');
         } else {
           const textNode = document.createTextNode('\n\n');
-          el.after(textNode);
+          element.after(textNode);
         }
       });
 
-      // Get the text content
       let text = tmp.textContent || tmp.innerText || '';
-
-      // Clean up whitespace
       text = text
-        .replace(/\n{3,}/g, '\n\n')        // Max 2 consecutive newlines
-        .replace(/[ \t]{2,}/g, ' ')         // Remove multiple spaces
-        .replace(/^\s+|\s+$/gm, '')         // Trim each line
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/[ \t]{2,}/g, ' ')
+        .replace(/^\s+|\s+$/gm, '')
         .trim();
 
       return text;
-    } catch (error) {
-      console.error('stripHtml error:', error);
+    } catch (stripError) {
+      console.error('stripHtml error:', stripError);
 
-      // Comprehensive fallback
-      let text = html
-        // Replace common block elements with newlines
+      return html
         .replace(/<\/?(p|div|br|h[1-6]|li|ul|ol)[^>]*>/gi, '\n')
-        // Remove all other HTML tags
         .replace(/<[^>]+>/g, '')
-        // Decode HTML entities
         .replace(/&nbsp;/g, ' ')
         .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
@@ -167,20 +239,15 @@ export default function AgentsPanel() {
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'")
         .replace(/&apos;/g, "'")
-        // Clean up whitespace
         .replace(/\n{3,}/g, '\n\n')
         .replace(/[ \t]{2,}/g, ' ')
         .trim();
-
-      return text;
     }
   };
 
-  const getAnalysisHtml = (analysis: any) =>
-    analysis?.content_html ?? analysis?.content ?? analysis?.content_raw ?? '';
+  const getAnalysisHtml = (analysis: any) => analysis?.content_html ?? analysis?.content ?? analysis?.content_raw ?? '';
 
-  const getAnalysisText = (analysis: any) =>
-    analysis?.content_text ?? stripHtml(getAnalysisHtml(analysis));
+  const getAnalysisText = (analysis: any) => analysis?.content_text ?? stripHtml(getAnalysisHtml(analysis));
 
   const getResultHtml = (result: any, htmlKey: string, legacyKey: string, rawKey?: string) =>
     result?.[htmlKey] ?? result?.[legacyKey] ?? (rawKey ? result?.[rawKey] : '') ?? '';
@@ -189,12 +256,15 @@ export default function AgentsPanel() {
     result?.[textKey] ?? stripHtml(getResultHtml(result, htmlKey, legacyKey, rawKey));
 
   const generatePDF = async () => {
-    if (!results || !selectedFeature) return;
+    if (!results || !selectedFeature) {
+      return;
+    }
 
     try {
-      // Create a printable version
       const printWindow = window.open('', '_blank');
-      if (!printWindow) return;
+      if (!printWindow) {
+        return;
+      }
 
       let htmlContent = `
         <!DOCTYPE html>
@@ -206,24 +276,24 @@ export default function AgentsPanel() {
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
               line-height: 1.6;
-              color: #333;
+              color: #1e293b;
               max-width: 1200px;
               margin: 0 auto;
               padding: 40px 20px;
             }
-            h1 { color: #1565c0; border-bottom: 3px solid #1565c0; padding-bottom: 10px; }
-            h2 { color: #0d47a1; margin-top: 30px; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; }
-            h3 { color: #546e7a; margin-top: 20px; }
-            h4 { color: #37474f; margin-top: 15px; }
-            .metadata { background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 30px; }
-            .section { margin-bottom: 30px; padding: 20px; background: #fafafa; border-radius: 8px; }
-            .highlight { background: #fff3e0; padding: 20px; border-left: 4px solid #ff9800; margin: 20px 0; }
+            h1 { color: #0f172a; border-bottom: 3px solid #0ea5e9; padding-bottom: 10px; }
+            h2 { color: #0f172a; margin-top: 30px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
+            h3 { color: #334155; margin-top: 20px; }
+            h4 { color: #475569; margin-top: 15px; }
+            .metadata { background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 30px; }
+            .section { margin-bottom: 24px; padding: 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; }
+            .highlight { background: #f8fafc; padding: 20px; border: 1px solid #cbd5e1; border-radius: 14px; margin: 20px 0; }
             table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
-            th { background: #f5f5f5; font-weight: 600; }
+            th, td { padding: 12px; text-align: left; border: 1px solid #e2e8f0; }
+            th { background: #f8fafc; font-weight: 600; }
             ul, ol { margin: 10px 0; padding-left: 30px; }
             li { margin: 8px 0; }
-            strong { color: #0d47a1; }
+            strong { color: #0f172a; }
             @media print {
               body { margin: 0; padding: 20px; }
               .section { page-break-inside: avoid; }
@@ -238,7 +308,6 @@ export default function AgentsPanel() {
           </div>
       `;
 
-      // Add content based on feature type
       if (selectedFeature.id === 'amendment-risk' && results.agent_analyses) {
         htmlContent += `
           <div class="section">
@@ -251,15 +320,15 @@ export default function AgentsPanel() {
           htmlContent += `
             <div class="section">
               <h2>${analysis.agent}</h2>
-              <p><strong>Focus Areas:</strong> ${analysis.focus_areas.join(', ')}</p>
-              ${analysis.content}
+              <p><strong>Focus Areas:</strong> ${(analysis.focus_areas || []).join(', ')}</p>
+              ${getAnalysisHtml(analysis)}
             </div>
           `;
         });
         htmlContent += `
           <div class="highlight">
             <h2>Executive Risk Assessment</h2>
-            ${results.risk_assessment}
+            ${getResultHtml(results, 'risk_assessment_html', 'risk_assessment', 'risk_assessment_raw')}
           </div>
         `;
       } else if (selectedFeature.id === 'design-patterns' && results.agent_analyses) {
@@ -267,14 +336,14 @@ export default function AgentsPanel() {
           htmlContent += `
             <div class="section">
               <h2>${analysis.agent}</h2>
-              ${analysis.content}
+              ${getAnalysisHtml(analysis)}
             </div>
           `;
         });
         htmlContent += `
           <div class="highlight">
             <h2>Strategic Insights</h2>
-            ${results.strategic_insights}
+            ${getResultHtml(results, 'strategic_insights_html', 'strategic_insights', 'strategic_insights_raw')}
           </div>
         `;
       } else if (selectedFeature.id === 'soa-composer' && results.agent_analyses) {
@@ -282,14 +351,14 @@ export default function AgentsPanel() {
           htmlContent += `
             <div class="section">
               <h2>${analysis.agent}</h2>
-              ${analysis.content}
+              ${getAnalysisHtml(analysis)}
             </div>
           `;
         });
         htmlContent += `
           <div class="highlight">
             <h2>Complete Schedule of Assessments</h2>
-            ${results.complete_soa}
+            ${getResultHtml(results, 'complete_soa_html', 'complete_soa', 'complete_soa_raw')}
           </div>
         `;
       } else if (selectedFeature.id === 'protocol-analysis' && results.agent_analyses) {
@@ -297,22 +366,22 @@ export default function AgentsPanel() {
           htmlContent += `
             <div class="section">
               <h2>${analysis.agent}</h2>
-              ${analysis.content}
+              ${getAnalysisHtml(analysis)}
             </div>
           `;
         });
         htmlContent += `
           <div class="highlight">
             <h2>Executive Summary</h2>
-            ${results.executive_summary}
+            ${getResultHtml(results, 'executive_summary_html', 'executive_summary', 'executive_summary_raw')}
           </div>
         `;
       } else if (selectedFeature.id === 'trial-comparison' && results.comparisons) {
-        Object.entries(results.comparisons).forEach(([key, content]: [string, any]) => {
+        Object.entries(results.comparisons).forEach(([key, sectionHtml]: [string, any]) => {
           htmlContent += `
             <div class="section">
               <h2>${key.replace(/_/g, ' ').toUpperCase()}</h2>
-              ${content}
+              ${sectionHtml}
             </div>
           `;
         });
@@ -331,51 +400,50 @@ export default function AgentsPanel() {
 
       printWindow.document.write(htmlContent);
       printWindow.document.close();
-
-      // Wait for content to load then print
       printWindow.onload = () => {
         setTimeout(() => {
           printWindow.print();
         }, 250);
       };
-    } catch (error) {
-      console.error('PDF generation error:', error);
-      alert('Failed to generate PDF. Please try again.');
+    } catch (pdfError) {
+      console.error('PDF generation error:', pdfError);
+      setError('Failed to generate PDF. Please try again.');
     }
   };
 
   const downloadResults = () => {
-    if (!results || !selectedFeature) return;
+    if (!results || !selectedFeature) {
+      return;
+    }
 
     let content = `${selectedFeature.title}\n`;
     content += `${'='.repeat(selectedFeature.title.length)}\n\n`;
     content += `Analysis Results\n`;
     content += `Generated: ${new Date().toLocaleString()}\n\n`;
 
-    // Convert results to plain text
     if (selectedFeature.id === 'amendment-risk' && results.agent_analyses) {
       content += `Trial: ${results.trial?.nct_id} - ${results.trial?.title}\n\n`;
       results.agent_analyses.forEach((analysis: any) => {
         content += `${analysis.agent}\n${'-'.repeat(analysis.agent.length)}\n`;
-        content += `Focus Areas: ${analysis.focus_areas.join(', ')}\n\n`;
-        content += stripHtml(analysis.content) + '\n\n';
+        content += `Focus Areas: ${(analysis.focus_areas || []).join(', ')}\n\n`;
+        content += `${getAnalysisText(analysis)}\n\n`;
       });
       content += `EXECUTIVE RISK ASSESSMENT\n${'='.repeat(25)}\n`;
-      content += stripHtml(results.risk_assessment) + '\n\n';
+      content += `${getResultText(results, 'risk_assessment_text', 'risk_assessment_html', 'risk_assessment', 'risk_assessment_raw')}\n\n`;
     } else if (selectedFeature.id === 'design-patterns' && results.agent_analyses) {
       results.agent_analyses.forEach((analysis: any) => {
         content += `${analysis.agent}\n${'-'.repeat(analysis.agent.length)}\n`;
-        content += stripHtml(analysis.content) + '\n\n';
+        content += `${getAnalysisText(analysis)}\n\n`;
       });
       content += `STRATEGIC INSIGHTS\n${'='.repeat(18)}\n`;
-      content += stripHtml(results.strategic_insights) + '\n\n';
+      content += `${getResultText(results, 'strategic_insights_text', 'strategic_insights_html', 'strategic_insights', 'strategic_insights_raw')}\n\n`;
     } else if (selectedFeature.id === 'soa-composer' && results.agent_analyses) {
       results.agent_analyses.forEach((analysis: any) => {
         content += `${analysis.agent}\n${'-'.repeat(analysis.agent.length)}\n`;
-        content += stripHtml(analysis.content) + '\n\n';
+        content += `${getAnalysisText(analysis)}\n\n`;
       });
       content += `COMPLETE SCHEDULE OF ASSESSMENTS\n${'='.repeat(33)}\n`;
-      content += stripHtml(results.complete_soa) + '\n\n';
+      content += `${getResultText(results, 'complete_soa_text', 'complete_soa_html', 'complete_soa', 'complete_soa_raw')}\n\n`;
     } else if (selectedFeature.id === 'agentic-search') {
       content += `Original Query: ${results.original_query}\n\n`;
       content += `Terminology Expansion:\n${results.terminology_expansion}\n\n`;
@@ -384,399 +452,422 @@ export default function AgentsPanel() {
     } else if (selectedFeature.id === 'protocol-analysis' && results.agent_analyses) {
       results.agent_analyses.forEach((analysis: any) => {
         content += `${analysis.agent}\n${'-'.repeat(analysis.agent.length)}\n`;
-        content += stripHtml(analysis.content) + '\n\n';
+        content += `${getAnalysisText(analysis)}\n\n`;
       });
       content += `EXECUTIVE SUMMARY\n${'='.repeat(17)}\n`;
-      content += stripHtml(results.executive_summary) + '\n\n';
+      content += `${getResultText(results, 'executive_summary_text', 'executive_summary_html', 'executive_summary', 'executive_summary_raw')}\n\n`;
     } else if (selectedFeature.id === 'trial-comparison' && results.comparisons) {
-      Object.entries(results.comparisons).forEach(([key, content]: [string, any]) => {
+      Object.entries(results.comparisons).forEach(([key, sectionHtml]: [string, any]) => {
         const title = key.replace(/_/g, ' ').toUpperCase();
         content += `${title}\n${'-'.repeat(title.length)}\n`;
-        content += stripHtml(content as string) + '\n\n';
+        content += `${stripHtml(sectionHtml as string)}\n\n`;
       });
       content += `STRATEGIC SYNTHESIS\n${'='.repeat(19)}\n`;
-      content += stripHtml(results.strategic_synthesis) + '\n\n';
+      content += `${stripHtml(results.strategic_synthesis)}\n\n`;
     }
 
-    // Create download
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${selectedFeature.id}-${Date.now()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${selectedFeature.id}-${Date.now()}.txt`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
   };
 
   const handleInputChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((previous) => ({ ...previous, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setError(null);
     setResults(null);
 
     try {
-      // Prepare request data based on feature
       let requestData: any = { ...formData };
 
-      // Special handling for trial comparison (split comma-separated NCT IDs)
       if (selectedFeature?.id === 'trial-comparison' && formData.nctIds) {
         requestData = {
-          nctIds: formData.nctIds.split(',').map(id => id.trim()).filter(id => id)
+          nctIds: formData.nctIds
+            .split(',')
+            .map((id) => id.trim())
+            .filter((id) => id),
         };
       }
 
-      const baseUrl = selectedFeature && AGENTIC_FEATURE_IDS.has(selectedFeature.id)
-        ? AGENTIC_API_BASE_URL
-        : API_BASE_URL;
-
+      const baseUrl = selectedFeature && AGENTIC_FEATURE_IDS.has(selectedFeature.id) ? AGENTIC_API_BASE_URL : API_BASE_URL;
       const response = await axios.post(`${baseUrl}${selectedFeature?.endpoint}`, requestData);
       setResults(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'An error occurred');
+    } catch (submitError: any) {
+      setError(submitError.response?.data?.error || submitError.message || 'An error occurred');
     } finally {
       setLoading(false);
     }
   };
 
+  const renderRichContent = (html: string, text: string) =>
+    viewMode === 'rendered' ? (
+      <div className="workspace-rich-text prose prose-sm max-w-none prose-slate" dangerouslySetInnerHTML={{ __html: html }} />
+    ) : (
+      <div className="whitespace-pre-wrap text-sm leading-7 text-slate-700">{text}</div>
+    );
+
+  const renderAnalysisCards = (analyses: any[], tone: (typeof FEATURE_TONES)[ToneName]) => (
+    <div className="space-y-4">
+      {analyses.map((analysis: any, index: number) => (
+        <div key={index} className="workspace-subpanel">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h4 className="text-base font-semibold text-slate-950">{analysis.agent}</h4>
+            {analysis.focus_areas?.length ? (
+              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${tone.badge}`}>
+                {analysis.focus_areas.join(', ')}
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-4">{renderRichContent(getAnalysisHtml(analysis), getAnalysisText(analysis))}</div>
+        </div>
+      ))}
+    </div>
+  );
+
   const renderResults = () => {
-    if (!results) return null;
+    if (!results || !selectedFeature) {
+      return null;
+    }
+
+    const tone = FEATURE_TONES[selectedFeature.tone];
+    const FeatureIcon = selectedFeature.icon;
 
     return (
-      <div className="mt-6">
-        {/* Controls Bar */}
-        <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-          <div className="flex gap-2">
+      <section className="space-y-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap gap-2">
             <button
+              type="button"
               onClick={() => setViewMode('rendered')}
-              className={`px-4 py-2 rounded-md font-semibold transition-colors ${
-                viewMode === 'rendered'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
-              }`}
+              className={`workspace-chip ${viewMode === 'rendered' ? 'workspace-chip-active' : ''}`}
             >
-              📊 Formatted View
+              <LayersIcon className="h-4 w-4" />
+              Formatted
             </button>
             <button
+              type="button"
               onClick={() => setViewMode('plain')}
-              className={`px-4 py-2 rounded-md font-semibold transition-colors ${
-                viewMode === 'plain'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
-              }`}
+              className={`workspace-chip ${viewMode === 'plain' ? 'workspace-chip-active' : ''}`}
             >
-              📝 Plain Text
+              <FileTextIcon className="h-4 w-4" />
+              Plain text
             </button>
           </div>
-          <button
-            onClick={generatePDF}
-            className="px-4 py-2 bg-green-600 text-white rounded-md font-semibold hover:bg-green-700 transition-colors flex items-center gap-2"
-          >
-            📄 Download PDF
-          </button>
+
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={downloadResults} className="workspace-button-ghost">
+              <DownloadIcon className="h-4 w-4" />
+              Download text
+            </button>
+            <button type="button" onClick={generatePDF} className="workspace-button-secondary">
+              <PrinterIcon className="h-4 w-4" />
+              Download PDF
+            </button>
+          </div>
         </div>
 
-        {/* Results Container with max-width */}
-        <div className="max-w-[90%] mx-auto p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
-          <h3 className="text-xl font-bold mb-4 text-gray-800">Results</h3>
-
-        {/* Amendment Risk Results */}
-        {selectedFeature?.id === 'amendment-risk' && results.agent_analyses && (
-          <div>
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-              <h4 className="font-bold text-lg mb-2">Trial: {results.trial?.nct_id}</h4>
-              <p className="text-gray-700">{results.trial?.title}</p>
-            </div>
-
-            {results.agent_analyses.map((analysis: any, idx: number) => (
-              <div key={idx} className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-bold text-lg mb-2 text-blue-600">{analysis.agent}</h4>
-                <div className="text-sm text-gray-600 mb-2">
-                  <strong>Focus Areas:</strong> {analysis.focus_areas.join(', ')}
-                </div>
-                {viewMode === 'rendered' ? (
-                  <div
-                    className="prose max-w-none"
-                    dangerouslySetInnerHTML={{ __html: getAnalysisHtml(analysis) }}
-                  />
-                ) : (
-                  <div className="whitespace-pre-wrap text-base text-gray-800 leading-relaxed">
-                    {getAnalysisText(analysis)}
-                  </div>
-                )}
+        <div className="workspace-panel-light overflow-hidden">
+          <div className="border-b border-slate-200/80 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl border ${tone.iconSurface} ${tone.iconColor}`}>
+                <FeatureIcon className="h-5 w-5" />
               </div>
-            ))}
-
-            <div className="mt-6 p-6 bg-gradient-to-r from-red-50 to-orange-50 rounded-lg border-2 border-red-200">
-              <h4 className="font-bold text-xl mb-4 text-red-700">Executive Risk Assessment</h4>
-              {viewMode === 'rendered' ? (
-                <div
-                  className="prose max-w-none"
-                  dangerouslySetInnerHTML={{
-                    __html: getResultHtml(results, 'risk_assessment_html', 'risk_assessment', 'risk_assessment_raw'),
-                  }}
-                />
-              ) : (
-                <div className="whitespace-pre-wrap text-base text-gray-800 leading-relaxed">
-                  {getResultText(results, 'risk_assessment_text', 'risk_assessment_html', 'risk_assessment', 'risk_assessment_raw')}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Design Patterns Results */}
-        {selectedFeature?.id === 'design-patterns' && results.agent_analyses && (
-          <div>
-            {results.agent_analyses.map((analysis: any, idx: number) => (
-              <div key={idx} className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-bold text-lg mb-2 text-purple-600">{analysis.agent}</h4>
-                {viewMode === 'rendered' ? (
-                  <div
-                    className="prose max-w-none"
-                    dangerouslySetInnerHTML={{ __html: getAnalysisHtml(analysis) }}
-                  />
-                ) : (
-                  <div className="whitespace-pre-wrap text-base text-gray-800 leading-relaxed">
-                    {getAnalysisText(analysis)}
-                  </div>
-                )}
+              <div>
+                <h3 className="text-lg font-semibold text-slate-950">Analysis results</h3>
+                <p className="text-sm text-slate-600">{selectedFeature.title}</p>
               </div>
-            ))}
-
-            <div className="mt-6 p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border-2 border-purple-200">
-              <h4 className="font-bold text-xl mb-4 text-purple-700">Strategic Insights</h4>
-              {viewMode === 'rendered' ? (
-                <div
-                  className="prose max-w-none"
-                  dangerouslySetInnerHTML={{
-                    __html: getResultHtml(results, 'strategic_insights_html', 'strategic_insights', 'strategic_insights_raw'),
-                  }}
-                />
-              ) : (
-                <div className="whitespace-pre-wrap text-base text-gray-800 leading-relaxed">
-                  {getResultText(results, 'strategic_insights_text', 'strategic_insights_html', 'strategic_insights', 'strategic_insights_raw')}
-                </div>
-              )}
             </div>
           </div>
-        )}
 
-        {/* SoA Composer Results */}
-        {selectedFeature?.id === 'soa-composer' && results.agent_analyses && (
-          <div>
-            {results.agent_analyses.map((analysis: any, idx: number) => (
-              <div key={idx} className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-bold text-lg mb-2 text-green-600">{analysis.agent}</h4>
-                {viewMode === 'rendered' ? (
-                  <div
-                    className="prose max-w-none"
-                    dangerouslySetInnerHTML={{ __html: getAnalysisHtml(analysis) }}
-                  />
-                ) : (
-                  <div className="whitespace-pre-wrap text-base text-gray-800 leading-relaxed">
-                    {getAnalysisText(analysis)}
+          <div className="space-y-4 px-5 py-5">
+            {selectedFeature.id === 'amendment-risk' && results.agent_analyses ? (
+              <>
+                <div className={`rounded-[24px] border px-4 py-4 ${tone.emphasis}`}>
+                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Trial</div>
+                  <h4 className={`mt-2 text-base font-semibold ${tone.emphasisTitle}`}>{results.trial?.nct_id}</h4>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">{results.trial?.title}</p>
+                </div>
+                {renderAnalysisCards(results.agent_analyses, tone)}
+                <div className={`rounded-[28px] border px-5 py-5 ${tone.emphasis}`}>
+                  <h4 className={`text-lg font-semibold ${tone.emphasisTitle}`}>Executive risk assessment</h4>
+                  <div className="mt-4">
+                    {renderRichContent(
+                      getResultHtml(results, 'risk_assessment_html', 'risk_assessment', 'risk_assessment_raw'),
+                      getResultText(results, 'risk_assessment_text', 'risk_assessment_html', 'risk_assessment', 'risk_assessment_raw')
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
-
-            <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-teal-50 rounded-lg border-2 border-green-200">
-              <h4 className="font-bold text-xl mb-4 text-green-700">Complete Schedule of Assessments</h4>
-              {viewMode === 'rendered' ? (
-                <div
-                  className="prose max-w-none"
-                  dangerouslySetInnerHTML={{
-                    __html: getResultHtml(results, 'complete_soa_html', 'complete_soa', 'complete_soa_raw'),
-                  }}
-                />
-              ) : (
-                <div className="whitespace-pre-wrap text-base text-gray-800 leading-relaxed">
-                  {getResultText(results, 'complete_soa_text', 'complete_soa_html', 'complete_soa', 'complete_soa_raw')}
                 </div>
-              )}
-            </div>
-          </div>
-        )}
+              </>
+            ) : null}
 
-        {/* Agentic Search Results */}
-        {selectedFeature?.id === 'agentic-search' && results.terminology_expansion && (
-          <div>
-            <div className="mb-4">
-              <strong className="text-gray-700">Original Query:</strong>
-              <span className="ml-2 text-gray-900">{results.original_query}</span>
-            </div>
-            <div className="mb-4">
-              <strong className="text-gray-700">Terminology Expansion:</strong>
-              <div className="mt-2 text-gray-900">{results.terminology_expansion}</div>
-            </div>
-            <div className="mb-4">
-              <strong className="text-gray-700">Search Strategy:</strong>
-              <div className="mt-2 text-gray-900">{results.search_strategy}</div>
-            </div>
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <strong className="text-gray-700">Enhanced Search Terms:</strong>
-              <div className="mt-2 text-blue-900 font-mono text-sm">{results.enhanced_search_terms}</div>
-            </div>
-          </div>
-        )}
-
-        {/* Protocol Analysis Results */}
-        {selectedFeature?.id === 'protocol-analysis' && results.agent_analyses && (
-          <div>
-            {results.agent_analyses.map((analysis: any, idx: number) => (
-              <div key={idx} className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-bold text-lg mb-2 text-indigo-600">{analysis.agent}</h4>
-                {viewMode === 'rendered' ? (
-                  <div
-                    className="prose max-w-none"
-                    dangerouslySetInnerHTML={{ __html: getAnalysisHtml(analysis) }}
-                  />
-                ) : (
-                  <div className="whitespace-pre-wrap text-base text-gray-800 leading-relaxed">
-                    {getAnalysisText(analysis)}
+            {selectedFeature.id === 'design-patterns' && results.agent_analyses ? (
+              <>
+                {renderAnalysisCards(results.agent_analyses, tone)}
+                <div className={`rounded-[28px] border px-5 py-5 ${tone.emphasis}`}>
+                  <h4 className={`text-lg font-semibold ${tone.emphasisTitle}`}>Strategic insights</h4>
+                  <div className="mt-4">
+                    {renderRichContent(
+                      getResultHtml(results, 'strategic_insights_html', 'strategic_insights', 'strategic_insights_raw'),
+                      getResultText(results, 'strategic_insights_text', 'strategic_insights_html', 'strategic_insights', 'strategic_insights_raw')
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
-
-            <div className="mt-6 p-6 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg border-2 border-indigo-200">
-              <h4 className="font-bold text-xl mb-4 text-indigo-700">Executive Summary</h4>
-              {viewMode === 'rendered' ? (
-                <div
-                  className="prose max-w-none"
-                  dangerouslySetInnerHTML={{
-                    __html: getResultHtml(results, 'executive_summary_html', 'executive_summary', 'executive_summary_raw'),
-                  }}
-                />
-              ) : (
-                <div className="whitespace-pre-wrap text-base text-gray-800 leading-relaxed">
-                  {getResultText(results, 'executive_summary_text', 'executive_summary_html', 'executive_summary', 'executive_summary_raw')}
                 </div>
-              )}
-            </div>
-          </div>
-        )}
+              </>
+            ) : null}
 
-        {/* Trial Comparison Results */}
-        {selectedFeature?.id === 'trial-comparison' && results.comparisons && (
-          <div>
-            {Object.entries(results.comparisons).map(([key, content]: [string, any], idx: number) => (
-              <div key={idx} className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-bold text-lg mb-2 text-teal-600 capitalize">{key.replace(/_/g, ' ')}</h4>
-                {viewMode === 'rendered' ? (
-                  <div
-                    className="prose max-w-none"
-                    dangerouslySetInnerHTML={{ __html: content }}
-                  />
-                ) : (
-                  <div className="whitespace-pre-wrap text-base text-gray-800 leading-relaxed">
-                    {stripHtml(content as string)}
+            {selectedFeature.id === 'soa-composer' && results.agent_analyses ? (
+              <>
+                {renderAnalysisCards(results.agent_analyses, tone)}
+                <div className={`rounded-[28px] border px-5 py-5 ${tone.emphasis}`}>
+                  <h4 className={`text-lg font-semibold ${tone.emphasisTitle}`}>Complete schedule of assessments</h4>
+                  <div className="mt-4">
+                    {renderRichContent(
+                      getResultHtml(results, 'complete_soa_html', 'complete_soa', 'complete_soa_raw'),
+                      getResultText(results, 'complete_soa_text', 'complete_soa_html', 'complete_soa', 'complete_soa_raw')
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
-
-            <div className="mt-6 p-6 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border-2 border-teal-200">
-              <h4 className="font-bold text-xl mb-4 text-teal-700">Strategic Synthesis</h4>
-              {viewMode === 'rendered' ? (
-                <div
-                  className="prose max-w-none"
-                  dangerouslySetInnerHTML={{ __html: results.strategic_synthesis }}
-                />
-              ) : (
-                <div className="whitespace-pre-wrap text-base text-gray-800 leading-relaxed">
-                  {stripHtml(results.strategic_synthesis)}
                 </div>
-              )}
-            </div>
+              </>
+            ) : null}
+
+            {selectedFeature.id === 'agentic-search' && results.terminology_expansion ? (
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="workspace-subpanel">
+                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Original query</div>
+                  <p className="mt-3 text-sm leading-7 text-slate-700">{results.original_query}</p>
+                </div>
+                <div className="workspace-subpanel">
+                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Terminology expansion</div>
+                  <p className="mt-3 text-sm leading-7 text-slate-700">{results.terminology_expansion}</p>
+                </div>
+                <div className="workspace-subpanel lg:col-span-2">
+                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Search strategy</div>
+                  <p className="mt-3 text-sm leading-7 text-slate-700">{results.search_strategy}</p>
+                </div>
+                <div className={`rounded-[28px] border px-5 py-5 lg:col-span-2 ${tone.emphasis}`}>
+                  <h4 className={`text-lg font-semibold ${tone.emphasisTitle}`}>Enhanced search terms</h4>
+                  <div className="mt-4 rounded-[22px] bg-white/80 px-4 py-4 font-mono text-sm text-slate-700">
+                    {results.enhanced_search_terms}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {selectedFeature.id === 'protocol-analysis' && results.agent_analyses ? (
+              <>
+                {renderAnalysisCards(results.agent_analyses, tone)}
+                <div className={`rounded-[28px] border px-5 py-5 ${tone.emphasis}`}>
+                  <h4 className={`text-lg font-semibold ${tone.emphasisTitle}`}>Executive summary</h4>
+                  <div className="mt-4">
+                    {renderRichContent(
+                      getResultHtml(results, 'executive_summary_html', 'executive_summary', 'executive_summary_raw'),
+                      getResultText(results, 'executive_summary_text', 'executive_summary_html', 'executive_summary', 'executive_summary_raw')
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : null}
+
+            {selectedFeature.id === 'trial-comparison' && results.comparisons ? (
+              <>
+                <div className="space-y-4">
+                  {Object.entries(results.comparisons).map(([key, sectionHtml]: [string, any], index: number) => (
+                    <div key={index} className="workspace-subpanel">
+                      <h4 className="text-base font-semibold capitalize text-slate-950">{key.replace(/_/g, ' ')}</h4>
+                      <div className="mt-4">
+                        {renderRichContent(sectionHtml, stripHtml(sectionHtml as string))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className={`rounded-[28px] border px-5 py-5 ${tone.emphasis}`}>
+                  <h4 className={`text-lg font-semibold ${tone.emphasisTitle}`}>Strategic synthesis</h4>
+                  <div className="mt-4">{renderRichContent(results.strategic_synthesis, stripHtml(results.strategic_synthesis))}</div>
+                </div>
+              </>
+            ) : null}
           </div>
-        )}
         </div>
-      </div>
+      </section>
     );
   };
 
+  const selectedFeatureTone = selectedFeature ? FEATURE_TONES[selectedFeature.tone] : FEATURE_TONES.sky;
+  const SelectedFeatureIcon = selectedFeature?.icon;
+
   return (
-    <div className="w-full">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">AI Agents</h2>
-        <p className="text-gray-600">Powered by GPT-4o and specialized multi-agent systems</p>
-      </div>
+    <div className="space-y-4">
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="workspace-subpanel">
+          <div className="workspace-kicker workspace-kicker-light">
+            <BotIcon className="h-4 w-4" />
+            Agent workflows
+          </div>
+          <h2 className="mt-3 text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">
+            Use deeper analysis only when the question needs it.
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            These workflows are for heavier reasoning: amendment risk, design synthesis, schedule building, and trial
+            comparison.
+          </p>
+        </div>
+
+        <div className="workspace-subpanel">
+          <div className="workspace-label">
+            <SparklesIcon className="h-4 w-4 text-sky-600" />
+            Workspace fit
+          </div>
+          <div className="mt-2 text-2xl font-semibold text-slate-950">{AGENT_FEATURES.length}</div>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Start in discovery, then move into one of these workflows when you need more structured reasoning.
+          </p>
+        </div>
+      </section>
 
       {!selectedFeature ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {AGENT_FEATURES.map((feature) => (
-            <div
-              key={feature.id}
-              onClick={() => handleFeatureClick(feature)}
-              className="p-6 bg-white border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 hover:shadow-lg transition-all"
-            >
-              <div className="text-4xl mb-3">{feature.icon}</div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">{feature.title}</h3>
-              <p className="text-sm text-gray-600">{feature.description}</p>
-            </div>
-          ))}
-        </div>
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {AGENT_FEATURES.map((feature) => {
+            const tone = FEATURE_TONES[feature.tone];
+            const FeatureIcon = feature.icon;
+
+            return (
+              <button
+                key={feature.id}
+                type="button"
+                onClick={() => handleFeatureClick(feature)}
+                className="workspace-subpanel group text-left transition hover:-translate-y-1 hover:border-sky-200 hover:shadow-[0_24px_60px_rgba(14,165,233,0.10)]"
+              >
+                <div className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl border ${tone.iconSurface} ${tone.iconColor}`}>
+                  <FeatureIcon className="h-5 w-5" />
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-slate-950">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{feature.description}</p>
+                <div className="mt-4 flex items-center justify-between">
+                  <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${tone.badge}`}>
+                    {feature.inputs.length} input{feature.inputs.length > 1 ? 's' : ''}
+                  </span>
+                  <span className="text-sm font-semibold text-slate-700">Open workflow</span>
+                </div>
+              </button>
+            );
+          })}
+        </section>
       ) : (
-        <div>
+        <section className="space-y-4">
           <button
+            type="button"
             onClick={() => {
               setSelectedFeature(null);
               setFormData({});
               setResults(null);
               setError(null);
             }}
-            className="mb-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            className="workspace-button-ghost"
           >
-            ← Back to Features
+            <ArrowLeftIcon className="h-4 w-4" />
+            Back to workflows
           </button>
 
-          <div className="p-6 bg-white border-2 border-gray-200 rounded-lg">
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">{selectedFeature.title}</h3>
-            <p className="text-gray-600 mb-6">{selectedFeature.description}</p>
-
-            <form onSubmit={handleSubmit}>
-              {selectedFeature.inputs.map((input) => (
-                <div key={input.name} className="mb-4">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {input.label}
-                    {input.required && <span className="text-red-500 ml-1">*</span>}
-                  </label>
-                  <input
-                    type={input.type}
-                    value={formData[input.name] || ''}
-                    onChange={(e) => handleInputChange(input.name, e.target.value)}
-                    placeholder={input.placeholder}
-                    required={input.required}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  />
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="workspace-panel-light overflow-hidden">
+              <div className="border-b border-slate-200/80 px-5 py-5">
+                <div className="flex items-start gap-4">
+                  <div
+                    className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${selectedFeatureTone.iconSurface} ${selectedFeatureTone.iconColor}`}
+                  >
+                    {SelectedFeatureIcon ? <SelectedFeatureIcon className="h-5 w-5" /> : null}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-950">{selectedFeature.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{selectedFeature.description}</p>
+                  </div>
                 </div>
-              ))}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Analyzing...' : 'Run Analysis'}
-              </button>
-            </form>
-
-            {error && (
-              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-                <strong>Error:</strong> {error}
               </div>
-            )}
 
-            {renderResults()}
+              <div className="px-5 py-5">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {selectedFeature.inputs.map((input) => (
+                    <div key={input.name} className="workspace-field">
+                      <label className="workspace-label" htmlFor={`agent-${input.name}`}>
+                        {input.name === 'nctIds' || input.name === 'nctId' ? (
+                          <FlaskIcon className="h-4 w-4 text-sky-600" />
+                        ) : (
+                          <SearchIcon className="h-4 w-4 text-sky-600" />
+                        )}
+                        {input.label}
+                      </label>
+                      {input.type === 'select' ? (
+                        <select
+                          id={`agent-${input.name}`}
+                          value={formData[input.name] || ''}
+                          onChange={(event) => handleInputChange(input.name, event.target.value)}
+                          required={input.required}
+                          className="workspace-input"
+                        >
+                          <option value="">Select {input.label.toLowerCase()}</option>
+                          {(input.options || []).map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          id={`agent-${input.name}`}
+                          type="text"
+                          value={formData[input.name] || ''}
+                          onChange={(event) => handleInputChange(input.name, event.target.value)}
+                          placeholder={input.placeholder}
+                          required={input.required}
+                          className="workspace-input"
+                        />
+                      )}
+                    </div>
+                  ))}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="workspace-button-primary min-w-[220px] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {loading ? <ActivityIcon className="h-4 w-4 animate-pulse" /> : <SparklesIcon className="h-4 w-4" />}
+                    {loading ? 'Running analysis' : 'Run analysis'}
+                  </button>
+                </form>
+
+                {error ? (
+                  <div className="mt-4 rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    <strong className="font-semibold">Error:</strong> {error}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <aside className="workspace-subpanel">
+              <div className="workspace-label">
+                <SparklesIcon className="h-4 w-4 text-sky-600" />
+                When to use this
+              </div>
+              <div className="mt-3 space-y-3 text-sm leading-6 text-slate-600">
+                <p>Use agent workflows after discovery has already narrowed the relevant study set or question.</p>
+                <p>Keep inputs focused. These workflows perform better with a precise NCT ID or a clean condition brief.</p>
+                <p>Export results when you want to share analysis without bringing the whole workspace context along.</p>
+              </div>
+            </aside>
           </div>
-        </div>
+
+          {renderResults()}
+        </section>
       )}
     </div>
   );

@@ -1,3 +1,5 @@
+export type AIProvider = 'openai' | 'gemini' | 'groq';
+
 export type AIModel = 
   | 'gpt-5.1' | 'gpt-5' | 'gpt-5-mini' | 'gpt-5-nano' | 'gpt-4.1-mini' | 'gpt-4.1-nano' | 'gpt-4o-mini'
   | 'gemini-3-pro-preview' | 'gemini-2.5-pro' | 'gemini-2.5-flash' | 'gemini-2.5-flash-lite' | 'gemini-2.0-flash' | 'gemini-2.0-flash-lite';
@@ -30,9 +32,9 @@ export const getModelGroup = (model: AIModel): 'GPT' | 'Gemini' => {
 /**
  * Get provider name from model name
  * @param model - Model name (e.g., 'gpt-5.1', 'gemini-3-pro-preview')
- * @returns Provider name: 'openai', 'gemini', or 'grok'
+ * @returns Backend provider key: 'openai', 'gemini', or 'groq'
  */
-export const getProviderFromModel = (model: string): 'openai' | 'gemini' | 'grok' => {
+export const getProviderFromModel = (model: string): AIProvider => {
   if (!model) return 'openai';
   
   const normalizedModel = model.toLowerCase();
@@ -47,12 +49,27 @@ export const getProviderFromModel = (model: string): 'openai' | 'gemini' | 'grok
     return 'gemini';
   }
   
-  // Grok models (xAI)
-  if (normalizedModel.startsWith('grok-')) {
-    return 'grok';
+  // Grok/Groq style labels are normalized to the backend's provider key.
+  if (normalizedModel.startsWith('grok-') || normalizedModel.startsWith('groq-')) {
+    return 'groq';
   }
   
   // Default fallback
   return 'openai';
 };
 
+export const normalizeProvider = (provider?: string | null): AIProvider => {
+  if (!provider) return 'openai';
+
+  const normalizedProvider = provider.toLowerCase();
+
+  if (normalizedProvider === 'gemini') {
+    return 'gemini';
+  }
+
+  if (normalizedProvider === 'groq' || normalizedProvider === 'grok') {
+    return 'groq';
+  }
+
+  return 'openai';
+};

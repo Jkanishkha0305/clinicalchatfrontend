@@ -23,7 +23,6 @@ export const login = createAsyncThunk(
   'auth/login',
   async ({ username, password }: { username: string; password: string }, { rejectWithValue }) => {
     try {
-      console.log('Login attempt with username:', password);
       const response = await authApi.login(username, password);
       const user = response.data;
       const token = response.token;
@@ -190,4 +189,3 @@ const authSlice = createSlice({
 
 export const { clearError, setGuestUser, loadUserFromStorage } = authSlice.actions;
 export default authSlice.reducer;
-
